@@ -20,7 +20,7 @@
             <p class="text-[10px] text-gray-400">Manage Live User Requests</p>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="loadRequests()" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-xl font-bold text-amber-400 transition">
+            <button onclick="switchTab(activeTab)" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-xl font-bold text-amber-400 transition">
                 <i class="fa-solid fa-rotate mr-1"></i> Refresh
             </button>
             <div class="bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-xl font-bold">
@@ -28,6 +28,16 @@
             </div>
         </div>
     </header>
+
+    <!-- Navigation Tabs (Deposit & Withdrawal) -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <button onclick="switchTab('deposit')" id="tab-deposit" class="py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition">
+            Deposit Requests
+        </button>
+        <button onclick="switchTab('withdraw')" id="tab-withdraw" class="py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition">
+            Withdrawal Requests
+        </button>
+    </div>
 
     <!-- Requests Container -->
     <div id="requests-container" class="space-y-4">
@@ -41,22 +51,37 @@
     </div>
 
     <script>
-        function loadRequests() {
+        let activeTab = 'deposit';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const depBtn = document.getElementById('tab-deposit');
+            const witBtn = document.getElementById('tab-withdraw');
+            
+            if(tab === 'deposit') {
+                depBtn.className = "py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition";
+                witBtn.className = "py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition";
+                loadDepositRequests();
+            } else {
+                witBtn.className = "py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition";
+                depBtn.className = "py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition";
+                loadWithdrawRequests();
+            }
+        }
+
+        function loadDepositRequests() {
             const container = document.getElementById('requests-container');
             let requests = [];
-            
             try {
                 requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
-            } catch(e) {
-                requests = [];
-            }
+            } catch(e) { requests = []; }
 
             if(requests.length === 0) {
                 container.innerHTML = `
                     <div class="card p-8 rounded-2xl text-center space-y-3 border border-gray-800">
                         <i class="fa-solid fa-inbox text-3xl text-gray-600"></i>
                         <p class="text-gray-400 text-xs font-semibold">No pending deposit requests.</p>
-                        <p class="text-[10px] text-gray-500">Jab user deposit request bhejega, woh yahan turant show hogi.</p>
+                        <p class="text-[10px] text-gray-500">Jab user deposit request bhejega, woh yahan show hogi.</p>
                     </div>`;
                 return;
             }
@@ -79,18 +104,52 @@
                             </button>
                         </div>
                         <div class="grid grid-cols-2 gap-2 pt-1">
-                            <button onclick="handleAction(${req.id}, 'approve', ${req.amount})" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
-                            <button onclick="handleAction(${req.id}, 'reject', 0)" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
+                            <button onclick="handleDepositAction(${req.id}, 'approve', ${req.amount})" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
+                            <button onclick="handleDepositAction(${req.id}, 'reject', 0)" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function loadWithdrawRequests() {
+            const container = document.getElementById('requests-container');
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem('zylobet_withdraw_requests')) || [];
+            } catch(e) { requests = []; }
+
+            if(requests.length === 0) {
+                container.innerHTML = `
+                    <div class="card p-8 rounded-2xl text-center space-y-3 border border-gray-800">
+                        <i class="fa-solid fa-wallet text-3xl text-gray-600"></i>
+                        <p class="text-gray-400 text-xs font-semibold">No pending withdrawal requests.</p>
+                        <p class="text-[10px] text-gray-500">Jab user coin withdraw karega, request yahan dikhegi.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            requests.forEach((req) => {
+                container.innerHTML += `
+                    <div class="card p-4 rounded-2xl border border-gray-800 space-y-3" id="w-req-${req.id}">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-blue-400 font-bold">${req.username || '@Player'}</span>
+                            <span class="text-gray-400 text-[10px]">${req.time || 'Just now'}</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-xl text-xs space-y-1">
+                            <p class="text-gray-400">Method: <span class="text-white font-bold">${req.method}</span></p>
+                            <p class="text-gray-400">Amount: <span class="text-amber-400 font-bold">${req.amount} Coins</span></p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="handleWithdrawAction(${req.id}, 'approve')" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
+                            <button onclick="handleWithdrawAction(${req.id}, 'reject')" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
                         </div>
                     </div>`;
             });
         }
 
         function viewProof(imgSrc) {
-            if(!imgSrc) {
-                alert("Proof image not available!");
-                return;
-            }
+            if(!imgSrc) { alert("Proof image not available!"); return; }
             document.getElementById('modal-img').src = imgSrc;
             document.getElementById('img-modal').classList.remove('hidden');
         }
@@ -99,25 +158,35 @@
             document.getElementById('img-modal').classList.add('hidden');
         }
 
-        function handleAction(id, action, amount) {
+        function handleDepositAction(id, action, amount) {
             let requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
-            
             if(action === 'approve') {
                 let currentGems = parseInt(localStorage.getItem('zylobet_gems')) || 12;
                 currentGems += amount;
                 localStorage.setItem('zylobet_gems', currentGems);
-                alert(`Approved! Exact ${amount} Diamonds successfully processed.`);
+                alert(`Approved! ${amount} Diamonds processed.`);
             } else {
-                alert("Request Rejected.");
+                alert("Deposit Request Rejected.");
             }
-
             requests = requests.filter(r => r.id !== id);
             localStorage.setItem('zylobet_deposit_requests', JSON.stringify(requests));
-            loadRequests();
+            loadDepositRequests();
         }
 
-        // Auto load requests
-        loadRequests();
+        function handleWithdrawAction(id, action) {
+            let requests = JSON.parse(localStorage.getItem('zylobet_withdraw_requests')) || [];
+            if(action === 'approve') {
+                alert("Withdrawal Request Approved successfully.");
+            } else {
+                alert("Withdrawal Request Rejected.");
+            }
+            requests = requests.filter(r => r.id !== id);
+            localStorage.setItem('zylobet_withdraw_requests', JSON.stringify(requests));
+            loadWithdrawRequests();
+        }
+
+        // Initial load
+        loadDepositRequests();
     </script>
 </body>
 </html>
