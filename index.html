@@ -19,8 +19,13 @@
             <h1 class="text-lg font-black text-orange-500 italic">ZyloBet Admin</h1>
             <p class="text-[10px] text-gray-400">Manage Live User Requests</p>
         </div>
-        <div class="bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-xl font-bold">
-            <i class="fa-solid fa-shield-halved mr-1"></i> Admin Secure
+        <div class="flex items-center gap-2">
+            <button onclick="loadRequests()" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-xl font-bold text-amber-400 transition">
+                <i class="fa-solid fa-rotate mr-1"></i> Refresh
+            </button>
+            <div class="bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-xl font-bold">
+                <i class="fa-solid fa-shield-halved mr-1"></i> Secure
+            </div>
         </div>
     </header>
 
@@ -31,46 +36,61 @@
 
     <!-- Image Modal -->
     <div id="img-modal" class="hidden fixed inset-0 z-50 bg-black/95 p-6 flex flex-col items-center justify-center">
-        <img id="modal-img" src="" alt="Proof" class="max-h-[80vh] max-w-full rounded-xl border border-gray-700 mb-4">
+        <img id="modal-img" src="" alt="Proof" class="max-h-[80vh] max-w-full rounded-xl border border-gray-700 mb-4 object-contain">
         <button onclick="closeImgModal()" class="px-6 py-2 bg-gray-800 rounded-xl font-bold text-xs">CLOSE PROOF</button>
     </div>
 
     <script>
         function loadRequests() {
             const container = document.getElementById('requests-container');
-            let requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
+            let requests = [];
+            
+            try {
+                requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
+            } catch(e) {
+                requests = [];
+            }
 
             if(requests.length === 0) {
-                container.innerHTML = `<div class="card p-6 rounded-2xl text-center text-gray-500 text-xs">No pending deposit requests.</div>`;
+                container.innerHTML = `
+                    <div class="card p-8 rounded-2xl text-center space-y-3 border border-gray-800">
+                        <i class="fa-solid fa-inbox text-3xl text-gray-600"></i>
+                        <p class="text-gray-400 text-xs font-semibold">No pending deposit requests.</p>
+                        <p class="text-[10px] text-gray-500">Jab user deposit request bhejega, woh yahan turant show hogi.</p>
+                    </div>`;
                 return;
             }
 
             container.innerHTML = '';
-            requests.forEach((req, index) => {
+            requests.forEach((req) => {
                 container.innerHTML += `
                     <div class="card p-4 rounded-2xl border border-gray-800 space-y-3" id="req-${req.id}">
                         <div class="flex justify-between items-center text-xs">
-                            <span class="text-blue-400 font-bold">${req.username}</span>
-                            <span class="text-gray-400">${req.time}</span>
+                            <span class="text-blue-400 font-bold">${req.username || '@Player'}</span>
+                            <span class="text-gray-400 text-[10px]">${req.time || 'Just now'}</span>
                         </div>
                         <div class="bg-gray-900 p-3 rounded-xl flex justify-between items-center text-xs">
                             <div>
                                 <p class="text-gray-400">Requested Diamonds:</p>
                                 <p class="text-cyan-400 font-black text-sm">${req.amount} Diamonds (₹${req.amount})</p>
                             </div>
-                            <button onclick="viewProof('${req.proof}')" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]">
+                            <button onclick="viewProof('${req.proof}')" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] transition">
                                 <i class="fa-solid fa-image mr-1"></i> View Proof
                             </button>
                         </div>
                         <div class="grid grid-cols-2 gap-2 pt-1">
-                            <button onclick="handleAction(${req.id}, 'approve', ${req.amount})" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition">APPROVE</button>
-                            <button onclick="handleAction(${req.id}, 'reject', 0)" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition">REJECT</button>
+                            <button onclick="handleAction(${req.id}, 'approve', ${req.amount})" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
+                            <button onclick="handleAction(${req.id}, 'reject', 0)" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
                         </div>
                     </div>`;
             });
         }
 
         function viewProof(imgSrc) {
+            if(!imgSrc) {
+                alert("Proof image not available!");
+                return;
+            }
             document.getElementById('modal-img').src = imgSrc;
             document.getElementById('img-modal').classList.remove('hidden');
         }
@@ -83,22 +103,20 @@
             let requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
             
             if(action === 'approve') {
-                // Add gems to user balance storage
                 let currentGems = parseInt(localStorage.getItem('zylobet_gems')) || 12;
                 currentGems += amount;
                 localStorage.setItem('zylobet_gems', currentGems);
-                alert(`Approved! ${amount} Diamonds successfully added to user balance.`);
+                alert(`Approved! Exact ${amount} Diamonds successfully processed.`);
             } else {
                 alert("Request Rejected.");
             }
 
-            // Remove from list
             requests = requests.filter(r => r.id !== id);
             localStorage.setItem('zylobet_deposit_requests', JSON.stringify(requests));
             loadRequests();
         }
 
-        // Load requests on page open
+        // Auto load requests
         loadRequests();
     </script>
 </body>
