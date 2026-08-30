@@ -1,192 +1,274 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZyloBet | Admin Panel</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <title>Watch & Earn</title>
+
+    <!-- Telegram Mini App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Monetag SDK -->
+    <script
+        src="//libtl.com/sdk.js"
+        data-zone="11590181"
+        data-sdk="show_11590181">
+    </script>
+
     <style>
-        body { background: #030508; color: white; font-family: 'Inter', sans-serif; }
-        .card { background: linear-gradient(145deg, #111, #000); border: 1px solid #222; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f2f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 430px;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .logo {
+            font-size: 55px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #777;
+            margin-top: 8px;
+        }
+
+        .coin-box {
+            margin: 25px 0;
+            padding: 20px;
+            border-radius: 18px;
+            background: #f7f8fa;
+        }
+
+        .coin-title {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .coins {
+            margin-top: 5px;
+            font-size: 38px;
+            font-weight: bold;
+        }
+
+        .watch-btn {
+            width: 100%;
+            border: 0;
+            border-radius: 15px;
+            padding: 17px;
+            background: #2481cc;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .watch-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            min-height: 25px;
+            margin-top: 18px;
+            font-size: 14px;
+        }
+
+        .info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+        }
     </style>
 </head>
-<body class="p-4 max-w-2xl mx-auto pb-20">
 
-    <!-- Admin Header -->
-    <header class="flex justify-between items-center mb-6 card p-4 rounded-2xl border-orange-500/30">
-        <div>
-            <h1 class="text-lg font-black text-orange-500 italic">ZyloBet Admin</h1>
-            <p class="text-[10px] text-gray-400">Manage Live User Requests</p>
+<body>
+
+<div class="app">
+
+    <div class="card">
+
+        <div class="logo">🎁</div>
+
+        <h1>Watch & Earn</h1>
+
+        <div class="subtitle">
+            Watch ads and earn coins
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="switchTab(activeTab)" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-xl font-bold text-amber-400 transition">
-                <i class="fa-solid fa-rotate mr-1"></i> Refresh
-            </button>
-            <div class="bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-xl font-bold">
-                <i class="fa-solid fa-shield-halved mr-1"></i> Secure
+
+        <div class="coin-box">
+
+            <div class="coin-title">
+                Your Coins
             </div>
+
+            <div class="coins">
+                🪙 <span id="coins">0</span>
+            </div>
+
         </div>
-    </header>
 
-    <!-- Navigation Tabs (Deposit & Withdrawal) -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
-        <button onclick="switchTab('deposit')" id="tab-deposit" class="py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition">
-            Deposit Requests
+        <button
+            id="watchBtn"
+            class="watch-btn"
+            onclick="watchAd()">
+            ▶ WATCH AD
         </button>
-        <button onclick="switchTab('withdraw')" id="tab-withdraw" class="py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition">
-            Withdrawal Requests
-        </button>
+
+        <div
+            id="status"
+            class="status">
+        </div>
+
+        <div class="info">
+            Complete the ad to receive your reward.
+        </div>
+
     </div>
 
-    <!-- Requests Container -->
-    <div id="requests-container" class="space-y-4">
-        <!-- Dynamic requests will load here -->
-    </div>
+</div>
 
-    <!-- Image Modal -->
-    <div id="img-modal" class="hidden fixed inset-0 z-50 bg-black/95 p-6 flex flex-col items-center justify-center">
-        <img id="modal-img" src="" alt="Proof" class="max-h-[80vh] max-w-full rounded-xl border border-gray-700 mb-4 object-contain">
-        <button onclick="closeImgModal()" class="px-6 py-2 bg-gray-800 rounded-xl font-bold text-xs">CLOSE PROOF</button>
-    </div>
+<script>
 
-    <script>
-        let activeTab = 'deposit';
+    // -----------------------------
+    // Telegram Mini App
+    // -----------------------------
 
-        function switchTab(tab) {
-            activeTab = tab;
-            const depBtn = document.getElementById('tab-deposit');
-            const witBtn = document.getElementById('tab-withdraw');
-            
-            if(tab === 'deposit') {
-                depBtn.className = "py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition";
-                witBtn.className = "py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition";
-                loadDepositRequests();
-            } else {
-                witBtn.className = "py-3 bg-orange-600 rounded-xl font-bold text-xs shadow-lg transition";
-                depBtn.className = "py-3 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl font-bold text-xs shadow-lg transition";
-                loadWithdrawRequests();
-            }
+    const tg = window.Telegram.WebApp;
+
+    tg.ready();
+    tg.expand();
+
+
+    // -----------------------------
+    // Coins
+    // -----------------------------
+
+    let coins = Number(
+        localStorage.getItem("coins") || 0
+    );
+
+    const coinsElement =
+        document.getElementById("coins");
+
+    const watchBtn =
+        document.getElementById("watchBtn");
+
+    const status =
+        document.getElementById("status");
+
+
+    coinsElement.textContent = coins;
+
+
+    // -----------------------------
+    // Add Reward
+    // -----------------------------
+
+    function addReward() {
+
+        coins += 10;
+
+        localStorage.setItem(
+            "coins",
+            coins
+        );
+
+        coinsElement.textContent =
+            coins;
+
+        status.textContent =
+            "✅ Ad completed! +10 coins";
+    }
+
+
+    // -----------------------------
+    // Watch Ad
+    // -----------------------------
+
+    async function watchAd() {
+
+        if (
+            typeof show_11590181 !==
+            "function"
+        ) {
+
+            status.textContent =
+                "❌ Monetag ad is not loaded.";
+
+            return;
         }
 
-        function loadDepositRequests() {
-            const container = document.getElementById('requests-container');
-            let requests = [];
-            try {
-                requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
-            } catch(e) { requests = []; }
 
-            if(requests.length === 0) {
-                container.innerHTML = `
-                    <div class="card p-8 rounded-2xl text-center space-y-3 border border-gray-800">
-                        <i class="fa-solid fa-inbox text-3xl text-gray-600"></i>
-                        <p class="text-gray-400 text-xs font-semibold">No pending deposit requests.</p>
-                        <p class="text-[10px] text-gray-500">Jab user deposit request bhejega, woh yahan show hogi.</p>
-                    </div>`;
-                return;
-            }
+        watchBtn.disabled = true;
 
-            container.innerHTML = '';
-            requests.forEach((req) => {
-                container.innerHTML += `
-                    <div class="card p-4 rounded-2xl border border-gray-800 space-y-3" id="req-${req.id}">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-blue-400 font-bold">${req.username || '@Player'}</span>
-                            <span class="text-gray-400 text-[10px]">${req.time || 'Just now'}</span>
-                        </div>
-                        <div class="bg-gray-900 p-3 rounded-xl flex justify-between items-center text-xs">
-                            <div>
-                                <p class="text-gray-400">Requested Diamonds:</p>
-                                <p class="text-cyan-400 font-black text-sm">${req.amount} Diamonds (₹${req.amount})</p>
-                            </div>
-                            <button onclick="viewProof('${req.proof}')" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] transition">
-                                <i class="fa-solid fa-image mr-1"></i> View Proof
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 pt-1">
-                            <button onclick="handleDepositAction(${req.id}, 'approve', ${req.amount})" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
-                            <button onclick="handleDepositAction(${req.id}, 'reject', 0)" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
-                        </div>
-                    </div>`;
-            });
+        status.textContent =
+            "⏳ Loading ad...";
+
+
+        try {
+
+            await show_11590181();
+
+
+            // Reward after the
+            // Monetag promise resolves
+
+            addReward();
+
         }
 
-        function loadWithdrawRequests() {
-            const container = document.getElementById('requests-container');
-            let requests = [];
-            try {
-                requests = JSON.parse(localStorage.getItem('zylobet_withdraw_requests')) || [];
-            } catch(e) { requests = []; }
+        catch (error) {
 
-            if(requests.length === 0) {
-                container.innerHTML = `
-                    <div class="card p-8 rounded-2xl text-center space-y-3 border border-gray-800">
-                        <i class="fa-solid fa-wallet text-3xl text-gray-600"></i>
-                        <p class="text-gray-400 text-xs font-semibold">No pending withdrawal requests.</p>
-                        <p class="text-[10px] text-gray-500">Jab user coin withdraw karega, request yahan dikhegi.</p>
-                    </div>`;
-                return;
-            }
+            console.error(
+                "Monetag error:",
+                error
+            );
 
-            container.innerHTML = '';
-            requests.forEach((req) => {
-                container.innerHTML += `
-                    <div class="card p-4 rounded-2xl border border-gray-800 space-y-3" id="w-req-${req.id}">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-blue-400 font-bold">${req.username || '@Player'}</span>
-                            <span class="text-gray-400 text-[10px]">${req.time || 'Just now'}</span>
-                        </div>
-                        <div class="bg-gray-900 p-3 rounded-xl text-xs space-y-1">
-                            <p class="text-gray-400">Method: <span class="text-white font-bold">${req.method}</span></p>
-                            <p class="text-gray-400">Amount: <span class="text-amber-400 font-bold">${req.amount} Coins</span></p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 pt-1">
-                            <button onclick="handleWithdrawAction(${req.id}, 'approve')" class="py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-xs transition shadow-lg">APPROVE</button>
-                            <button onclick="handleWithdrawAction(${req.id}, 'reject')" class="py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg">REJECT</button>
-                        </div>
-                    </div>`;
-            });
+            status.textContent =
+                "❌ Ad was not completed.";
+
         }
 
-        function viewProof(imgSrc) {
-            if(!imgSrc) { alert("Proof image not available!"); return; }
-            document.getElementById('modal-img').src = imgSrc;
-            document.getElementById('img-modal').classList.remove('hidden');
+        finally {
+
+            watchBtn.disabled =
+                false;
+
         }
 
-        function closeImgModal() {
-            document.getElementById('img-modal').classList.add('hidden');
-        }
+    }
 
-        function handleDepositAction(id, action, amount) {
-            let requests = JSON.parse(localStorage.getItem('zylobet_deposit_requests')) || [];
-            if(action === 'approve') {
-                let currentGems = parseInt(localStorage.getItem('zylobet_gems')) || 12;
-                currentGems += amount;
-                localStorage.setItem('zylobet_gems', currentGems);
-                alert(`Approved! ${amount} Diamonds processed.`);
-            } else {
-                alert("Deposit Request Rejected.");
-            }
-            requests = requests.filter(r => r.id !== id);
-            localStorage.setItem('zylobet_deposit_requests', JSON.stringify(requests));
-            loadDepositRequests();
-        }
+</script>
 
-        function handleWithdrawAction(id, action) {
-            let requests = JSON.parse(localStorage.getItem('zylobet_withdraw_requests')) || [];
-            if(action === 'approve') {
-                alert("Withdrawal Request Approved successfully.");
-            } else {
-                alert("Withdrawal Request Rejected.");
-            }
-            requests = requests.filter(r => r.id !== id);
-            localStorage.setItem('zylobet_withdraw_requests', JSON.stringify(requests));
-            loadWithdrawRequests();
-        }
-
-        // Initial load
-        loadDepositRequests();
-    </script>
 </body>
 </html>
+```
